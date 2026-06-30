@@ -31,7 +31,7 @@ namespace ckgrep {
 // coefficient (e.g. "2H") expands into that many repeated tokens, so a query
 // of "2H" and "H+H" parse to the same query_side and match each other's
 // reaction-side form.
-query_side parse_side(std::string_view side, bool case_sensitive, bool use_regex) {
+query_side parse_side(std::string_view side, bool case_sensitive) {
   query_side result;
   std::size_t start = 0;
   for (std::size_t i = 0; i <= side.size(); ++i) {
@@ -41,12 +41,9 @@ query_side parse_side(std::string_view side, bool case_sensitive, bool use_regex
         utils::coefficient_token parsed = utils::parse_coefficient(tok);
         std::string_view species = utils::trim(parsed.species);
         if (!species.empty()) {
-          int count = utils::expansion_count(parsed.coefficient);
-          for (int n = 0; n < count; ++n) {
-            result.tokens.push_back(
-                make_pattern(std::string(species), case_sensitive, use_regex)
-            );
-          }
+          utils::append_expanded(result.tokens, parsed.coefficient, [&] {
+            return make_pattern(std::string(species), case_sensitive);
+          });
         }
       }
       start = i + 1;
@@ -55,7 +52,7 @@ query_side parse_side(std::string_view side, bool case_sensitive, bool use_regex
   return result;
 }
 
-query parse_query(std::string_view text, bool case_sensitive, bool use_regex) {
+query parse_query(std::string_view text, bool case_sensitive) {
   std::string_view t = utils::trim(text);
   if (t.empty()) {
     throw std::runtime_error("empty query");
@@ -78,7 +75,7 @@ query parse_query(std::string_view text, bool case_sensitive, bool use_regex) {
   query result;
   if (arrow_pos == std::string_view::npos) {
     // No arrow: either-side match.
-    query_side side = parse_side(t, case_sensitive, use_regex);
+    query_side side = parse_side(t, case_sensitive);
     if (side.tokens.empty()) {
       throw std::runtime_error("query has no species");
     }
@@ -90,13 +87,13 @@ query parse_query(std::string_view text, bool case_sensitive, bool use_regex) {
   std::string_view right = utils::trim(t.substr(arrow_pos + arrow_len));
 
   if (!left.empty()) {
-    query_side side = parse_side(left, case_sensitive, use_regex);
+    query_side side = parse_side(left, case_sensitive);
     if (!side.tokens.empty()) {
       result.reactants = std::move(side);
     }
   }
   if (!right.empty()) {
-    query_side side = parse_side(right, case_sensitive, use_regex);
+    query_side side = parse_side(right, case_sensitive);
     if (!side.tokens.empty()) {
       result.products = std::move(side);
     }

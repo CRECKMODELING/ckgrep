@@ -26,10 +26,8 @@
 #include "string_utils.hpp"
 
 namespace ckgrep {
-glob_pattern::glob_pattern(std::string source, bool case_sensitive)
-    : source_(std::move(source))
-    , case_sensitive_(case_sensitive)
-{
+glob_pattern::glob_pattern(const std::string& source, bool case_sensitive)
+    : source_(std::move(source)), case_sensitive_(case_sensitive) {
   normalized_ = case_sensitive_ ? source_ : utils::to_lower(source_);
   is_literal_ =
       source_.find('*') == std::string::npos && source_.find('?') == std::string::npos;
@@ -45,9 +43,7 @@ bool glob_pattern::matches(std::string_view species) const {
 }
 
 std::unique_ptr<species_pattern>
-make_pattern(std::string source, bool case_sensitive, bool use_regex) {
-  // use_regex is the reserved seam for a future regex_pattern subclass.
-  (void)use_regex;
+make_pattern(const std::string& source, bool case_sensitive) {
   return std::make_unique<glob_pattern>(std::move(source), case_sensitive);
 }
 }  // namespace ckgrep

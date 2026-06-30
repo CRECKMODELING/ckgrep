@@ -36,8 +36,7 @@ namespace ckgrep {
  * corresponding side of a reaction for that side to be considered satisfied.
  *
  * Patterns are stored as owning polymorphic handles, so a side may freely mix
- * literal, glob, and (in future) regex tokens without knowing their concrete
- * types.
+ * literal, glob.
  */
 struct query_side {
   std::vector<std::unique_ptr<species_pattern>>
@@ -79,15 +78,12 @@ struct query {
  * make_pattern(). When no arrow is present the whole string is parsed as a
  * single either-side group (see @ref query::any).
  *
- * The @p case_sensitive and @p use_regex flags are forwarded unchanged to every
- * pattern built for the query, so a single query is uniformly case-sensitive (or
- * not) and uniformly regex (or not).
+ * The @p case_sensitive flag is forwarded unchanged to every pattern built for the
+ * query, so a single query is uniformly case-sensitive (or not).
  *
  * @param text           The raw query string, e.g. "CH4 + O2 => *OH".
  * @param case_sensitive When true, patterns require exact-case matching.
  *                       Defaults to false (case-insensitive).
- * @param use_regex      Forwarded to pattern construction; reserved for future
- *                       regex support and currently inert. Defaults to false.
  * @return A @ref query with the appropriate side(s) populated.
  *
  * @throws std::runtime_error if @p text is empty, contains no species, or is an
@@ -99,12 +95,7 @@ struct query {
  * parse_query("O2 <=> O + O");    // reactants = {O2}, products = {O, O}
  * @endcode
  */
-query parse_query(
-    std::string_view text,
-    bool case_sensitive = false,
-    bool use_regex = false
-);
-
+query parse_query(std::string_view text, bool case_sensitive = false);
 }  // namespace ckgrep
 /* ----------------------------------------------------------------------------------- *\
 |                                                                                       |

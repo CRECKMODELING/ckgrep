@@ -100,7 +100,7 @@ class glob_pattern : public species_pattern {
    * @param case_sensitive When true, matching requires exact case. Defaults to
    *                       false (case-insensitive).
    */
-  explicit glob_pattern(std::string source, bool case_sensitive = false);
+  explicit glob_pattern(const std::string& source, bool case_sensitive = false);
 
   /**
    * @brief Tests whether this glob matches a species name.
@@ -152,11 +152,10 @@ class glob_pattern : public species_pattern {
  *
  * @param source         The query token; ownership is taken by move.
  * @param case_sensitive When true, matching requires exact case. Defaults to false.
- * @param use_regex      Reserved for future regex support; currently ignored.
  * @return An owning pointer to a species_pattern for @p source.
  */
 std::unique_ptr<species_pattern>
-make_pattern(std::string source, bool case_sensitive = false, bool use_regex = false);
+make_pattern(const std::string& source, bool case_sensitive = false);
 
 }  // namespace ckgrep
 /* ----------------------------------------------------------------------------------- *\
