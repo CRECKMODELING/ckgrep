@@ -30,3 +30,12 @@ jobs:
           BIN=$(find build -name "ckgrep*" -type f \( -perm -u+x -o -name "*.exe" \) | head -1)
           "$BIN" --version
           "$BIN" --help
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ckgrep-${{ matrix.os }}
+          path: |
+            build/source/ckgrep
+            build/source/Release/ckgrep.exe
+          if-no-files-found: ignore
