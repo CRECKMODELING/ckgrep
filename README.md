@@ -2,7 +2,13 @@
 
 ![ckgrep banner](assets/ckgrep-banner.png)
 
-`ckgrep` is a grep-like utility aware of some nuances of the CHEMKIN standard format that allows searching chemical reactions through a standard formalization of the chemical reactions as text.
+`ckgrep` — short for **CHEMKIN grep**, or "chemical kinetics grep" if you prefer your acronyms spelled out — is a grep-like utility aware of some nuances of the CHEMKIN standard format that allows searching chemical reactions through a standard formalization of the chemical reactions as text. In principle, a sufficiently unhinged regular expression, one that accounts for stoichiometric coefficients, reaction arrows, third bodies, fall-off markers, and inline comments, all while not matching `CH4` against `CH4O`, piped into plain `grep` could do the same thing:
+
+```bash
+grep -nE '^[[:space:]]*([0-9.]*[[:space:]]*[A-Za-z0-9()+-]+[[:space:]]*\+[[:space:]]*)*[0-9.]*[[:space:]]*CH4[[:space:]]*(\+|\(\+|=)' mechanism.CKI
+```
+
+That finds reactions with `CH4` as a reactant. Want it as a product too, or paired with a specific co-reactant, or to also skip commented-out lines? Keep extending it. In practice, nobody wants to be the person maintaining that regex, so `ckgrep` already understands the chemistry wired into the CHEMKIN sintax and lets you write `"CH4="` instead.
 
 ## Usage
 
