@@ -12,3 +12,16 @@ target_compile_options(ckgrep_compiler_options INTERFACE
   $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wall -Wextra -Wpedantic>
   $<$<CXX_COMPILER_ID:MSVC>:/W4>
 )
+
+# -----------------------------------------------------------------------------
+# Code coverage (local, Clang/AppleClang only) - enable with
+# -Dckgrep_ENABLE_COVERAGE=ON, then build and run the `coverage` target.
+# -----------------------------------------------------------------------------
+option(ckgrep_ENABLE_COVERAGE "Build with source-based coverage instrumentation (Clang only)" OFF)
+if(ckgrep_ENABLE_COVERAGE)
+  if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    message(FATAL_ERROR "ckgrep_ENABLE_COVERAGE requires Clang or AppleClang (found ${CMAKE_CXX_COMPILER_ID})")
+  endif()
+  target_compile_options(ckgrep_compiler_options INTERFACE -fprofile-instr-generate -fcoverage-mapping)
+  target_link_options(ckgrep_compiler_options INTERFACE -fprofile-instr-generate -fcoverage-mapping)
+endif()

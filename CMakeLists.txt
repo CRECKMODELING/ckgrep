@@ -34,3 +34,10 @@ include(cmake/CompilerOptions.cmake)
 include(cmake/external/argparse.cmake)
 
 add_subdirectory(source)
+
+option(BUILD_TESTING "Build the ckgrep test suite" ON)
+if(BUILD_TESTING)
+  include(CTest)
+  include(cmake/external/googletest.cmake)
+  add_subdirectory(tests)
+endif()

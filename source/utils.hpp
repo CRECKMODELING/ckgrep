@@ -19,13 +19,14 @@
 \* ----------------------------------------------------------------------------------- */
 #pragma once
 
+#include <cstddef>
 #include <filesystem>
 #include <iostream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace ckgrep::utils {
-
 /**
  * @brief Prints the ckgrep banner to @p os.
  *
@@ -77,6 +78,14 @@ std::string read_file(const std::filesystem::path& path);
  *         resolved to any.
  */
 std::vector<std::filesystem::path> collect_files(const std::filesystem::path& path);
+
+void print_results(
+    const std::filesystem::path& path,
+    std::size_t line_number,
+    std::string_view content,
+    bool show_path,
+    int hits
+);
 }  // namespace ckgrep::utils
 /* ----------------------------------------------------------------------------------- *\
 |                                                                                       |

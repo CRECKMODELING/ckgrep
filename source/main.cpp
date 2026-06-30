@@ -60,31 +60,21 @@ int main(int argc, char** argv) {
   }
 
   bool search_comments = program->get<bool>("--comments");
-
   bool show_path = files.size() > 1;
   int hits = 0;
-  auto print_hit = [&](const std::filesystem::path& file,
-                       std::size_t line_number,
-                       const std::string& raw) {
-    if (show_path) {
-      std::cout << file.string() << ":";
-    }
-    std::cout << line_number << ": " << raw << "\n";
-    ++hits;
-  };
 
   for (const auto& file : files) {
     std::string file_content = ckgrep::utils::read_file(file);
     for (const ckgrep::reaction& r : ckgrep::scan_reactions(file_content)) {
       if (ckgrep::matches(q, r, mode)) {
-        print_hit(file, r.line_number, r.raw);
+        ckgrep::utils::print_results(file, r.line_number, r.raw, show_path, hits);
       }
     }
 
     if (search_comments) {
       for (const ckgrep::comment& c : ckgrep::scan_comments(file_content)) {
         if (ckgrep::utils::contains_ci(c.text, query_text)) {
-          print_hit(file, c.line_number, c.raw);
+          ckgrep::utils::print_results(file, c.line_number, c.raw, show_path, hits);
         }
       }
     }

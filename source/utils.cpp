@@ -20,6 +20,7 @@
 #include <array>
 #include <format>
 #include <fstream>
+#include <iostream>
 #include <stdexcept>
 #include <string_view>
 
@@ -122,6 +123,20 @@ std::vector<std::filesystem::path> collect_files(const std::filesystem::path& pa
   }
 
   return files;
+}
+
+void print_results(
+    const std::filesystem::path& path,
+    const std::size_t line_number,
+    const std::string_view content,
+    const bool show_path,
+    int hits
+) {
+  if (show_path) {
+    std::cout << path.string() << ":";
+  }
+  std::cout << line_number << ": " << content << "\n";
+  hits += 1;
 }
 }  // namespace ckgrep::utils
 /* ----------------------------------------------------------------------------------- *\
