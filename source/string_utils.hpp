@@ -25,9 +25,25 @@
 #include <string_view>
 
 namespace ckgrep::utils {
-
-/// Constexpr
+/**
+ * @brief The set of characters treated as whitespace by trim().
+ *
+ * @details Space, tab, carriage return, and newline (" \t\r\n") -- the bytes
+ * that can separate tokens or pad lines in a CHEMKIN mechanism file.
+ */
 inline constexpr std::string_view white_space = " \t\r\n";
+
+/**
+ * @brief Maximum distance from a whole number for expansion_count() to treat
+ * a coefficient as an integer.
+ *
+ * @details Stoichiometric coefficients are parsed as doubles (see
+ * parse_coefficient()), so a value that is conceptually "2" may arrive as
+ * something like 1.9999999998 due to floating-point rounding. This tolerance
+ * absorbs that imprecision when deciding whether a coefficient should expand
+ * into repeated species occurrences.
+ */
+inline constexpr double coefficient_integer_tolerance = 1e-9;
 
 /**
  * @brief Tests whether a glob pattern matches an entire string.
@@ -147,7 +163,8 @@ inline constexpr std::string_view white_space = " \t\r\n";
  * contains_ci("Soot precursor note", "xyz");        // -> false
  * @endcode
  */
-[[nodiscard]] inline bool contains_ci(std::string_view haystack, std::string_view needle) {
+[[nodiscard]] inline bool
+contains_ci(std::string_view haystack, std::string_view needle) {
   return to_lower(haystack).find(to_lower(needle)) != std::string::npos;
 }
 
@@ -181,6 +198,21 @@ inline constexpr std::string_view white_space = " \t\r\n";
 }
 
 /**
+ * @brief Tests whether a byte is an ASCII decimal digit ('0'-'9').
+ *
+ * @details A constexpr-friendly replacement for std::isdigit, which takes an
+ * int and is not specified as constexpr. Species and coefficient tokens are
+ * always plain ASCII, so a direct range check is both sufficient and locale-
+ * independent.
+ *
+ * @param c The byte to test.
+ * @return true if @p c is '0'-'9', false otherwise.
+ */
+[[nodiscard]] constexpr bool is_ascii_digit(const char c) {
+  return c >= '0' && c <= '9';
+}
+
+/**
  * @brief A token split into its leading stoichiometric coefficient and species name.
  *
  * @details Returned by parse_coefficient(). @ref coefficient is 1.0 when the
@@ -203,6 +235,10 @@ struct coefficient_token {
  * token (which is never a real species) pass through untouched rather than
  * being parsed as a coefficient with an empty species.
  *
+ * @note A space between the coefficient and the species (e.g. "2 CH3") is not
+ * strictly CHEMKIN-standard, but is accepted anyway so that loosely formatted
+ * mechanism files, such as those emitted by OpenSMOKE, parse correctly too.
+ *
  * @param token A single species-side token, e.g. "2H", "0.5O2", "2 CH3", "OH".
  * @return The parsed coefficient and the species text with it stripped.
  *
@@ -216,9 +252,8 @@ struct coefficient_token {
 [[nodiscard]] inline coefficient_token parse_coefficient(std::string_view token) {
   std::size_t i = 0;
   bool saw_digit = false;
-  while (i < token.size() &&
-         (std::isdigit(static_cast<unsigned char>(token[i])) != 0 || token[i] == '.')) {
-    if (std::isdigit(static_cast<unsigned char>(token[i])) != 0) {
+  while (i < token.size() && (is_ascii_digit(token[i]) || token[i] == '.')) {
+    if (is_ascii_digit(token[i])) {
       saw_digit = true;
     }
     ++i;
@@ -236,9 +271,6 @@ struct coefficient_token {
 
   return {std::stod(std::string(number)), remainder};
 }
-
-/// Tolerance used by expansion_count() to treat a coefficient as an integer.
-inline constexpr double coefficient_integer_tolerance = 1e-9;
 
 /**
  * @brief Number of discrete occurrences a stoichiometric coefficient expands to.
@@ -259,7 +291,7 @@ inline constexpr double coefficient_integer_tolerance = 1e-9;
  * expansion_count(0.5);  // -> 1
  * @endcode
  */
-[[nodiscard]] inline int expansion_count(double coefficient) {
+[[nodiscard]] inline int expansion_count(const double coefficient) {
   double rounded = std::round(coefficient);
   bool is_integer =
       std::abs(coefficient - rounded) < coefficient_integer_tolerance && rounded >= 1.0;
