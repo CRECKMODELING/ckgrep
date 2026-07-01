@@ -1,5 +1,9 @@
 ![ckgrep banner](assets/ckgrep-banner.png)
 
+[![Build](https://github.com/tdinelli/ckgrep/actions/workflows/build.yml/badge.svg)](https://github.com/tdinelli/ckgrep/actions/workflows/build.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
+
 `ckgrep` (short for "CHEMKIN grep", or "chemical kinetics grep" if you prefer your acronyms spelled out) is a grep-like utility aware of some nuances of the CHEMKIN standard format that allows searching chemical reactions through a standard formalization of the chemical reactions as text. In principle, a sufficiently unhinged regular expression, one that accounts for stoichiometric coefficients, reaction arrows, third bodies, fall-off markers, and inline comments, all while not matching `CH4` against `CH4O`, piped into plain `grep` could do the same thing:
 
 ```bash
