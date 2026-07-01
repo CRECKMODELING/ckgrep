@@ -79,12 +79,23 @@ std::string read_file(const std::filesystem::path& path);
  */
 std::vector<std::filesystem::path> collect_files(const std::filesystem::path& path);
 
+/**
+ * @brief Prints one matched line to stdout in grep style.
+ *
+ * @details Output format is `line: content`, prefixed with `path:` when
+ * @p show_path is set (i.e. when more than one file is being searched).
+ * Printing only -- hit counting is the caller's job.
+ *
+ * @param path        The file the match came from; printed when @p show_path.
+ * @param line_number 1-based line number of the match.
+ * @param content     The matched line text.
+ * @param show_path   Whether to prefix the output with @p path.
+ */
 void print_results(
     const std::filesystem::path& path,
     std::size_t line_number,
     std::string_view content,
-    bool show_path,
-    int hits
+    bool show_path
 );
 }  // namespace ckgrep::utils
 /* ----------------------------------------------------------------------------------- *\

@@ -129,14 +129,12 @@ void print_results(
     const std::filesystem::path& path,
     const std::size_t line_number,
     const std::string_view content,
-    const bool show_path,
-    int hits
+    const bool show_path
 ) {
   if (show_path) {
     std::cout << path.string() << ":";
   }
   std::cout << line_number << ": " << content << "\n";
-  hits += 1;
 }
 }  // namespace ckgrep::utils
 /* ----------------------------------------------------------------------------------- *\

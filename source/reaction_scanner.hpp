@@ -24,150 +24,45 @@
 #include <string_view>
 #include <vector>
 
+#include "matcher.hpp"
+#include "query.hpp"
+#include "reaction_parser.hpp"
+
 namespace ckgrep {
 
 /**
- * @brief One comment found while scanning a mechanism file.
+ * @brief Everything that shapes a search besides the query itself.
  *
- * @details Covers both full-line comments ("! note") and inline trailing
- * comments ("H+H=H2 1e+14 0 0  ! note"); both are produced by scan_comments().
+ * @details Mirrors the CLI flags: @ref mode is `-e/--exact`, @ref
+ * search_comments is `-c/--comments`. @ref comment_needle is the raw query
+ * text, matched as a plain case-insensitive substring inside comment text
+ * when @ref search_comments is on -- comments are prose, so the species
+ * grammar does not apply to them.
  */
-struct comment {
-  std::string raw;              ///< Original line, for output.
-  std::size_t line_number = 0;  ///< 1-based line in the source file.
-  std::string text;  ///< Comment text, '!' and surrounding whitespace stripped.
+struct search_options {
+  match_mode mode = match_mode::contains;  ///< How strictly reactions must match.
+  bool search_comments = false;  ///< Also search comment text (the -c flag).
+  std::string comment_needle;    ///< Substring to find in comments; the raw query text.
 };
 
 /**
- * @brief One species on a reaction side together with its stoichiometric coefficient.
+ * @brief One matched line of a searched text.
  *
- * @details E.g. "2H" parses to {"H", 2.0}. @ref coefficient is 1.0 when the
- * reaction wrote no explicit coefficient for that species.
+ * @details @ref text is the whole line as written in the source (trimmed),
+ * inline comment included -- what you grep is what you can copy back into a
+ * mechanism file.
  */
-struct species_amount {
-  std::string name;          ///< Species name, third-body markers stripped.
-  double coefficient = 1.0;  ///< Leading numeric coefficient; 1.0 if absent.
+struct search_hit {
+  std::size_t line_number = 0;  ///< 1-based line in the source text.
+  std::string text;             ///< The matched line, trimmed, comment included.
 };
-
-/**
- * @brief One parsed reaction, reduced to just what search needs.
- *
- * @details Holds the original text plus the two species multisets. Kinetics
- * (A/b/Ea, PLOG, LOW, TROE, third-body efficiencies) are intentionally
- * ignored -- this is a search index, not a mechanism loader.
- */
-struct reaction {
-  std::string raw;                        ///< Original reaction line, for output.
-  std::size_t line_number = 0;            ///< 1-based line in the source file.
-  std::vector<species_amount> reactants;  ///< Species + coeffs; (+M)/M stripped.
-  std::vector<species_amount> products;   ///< Species + coeffs; (+M)/M stripped.
-  std::string reaction_type;              ///< Reserved for future classification.
-  bool reversible = true;                 ///< true for <=> or =, false for =>.
-};
-
-/**
- * @brief Tests whether a case-insensitive prefix matches the start of a string.
- *
- * @details Used by is_reaction_line() to recognize CHEMKIN keyword/sub-data
- * lines (e.g. "LOW", "TROE") regardless of casing, without allocating: only
- * the leading @c prefix.size() bytes of @p s are compared.
- *
- * @param s      The string to test.
- * @param prefix The prefix to look for, compared case-insensitively.
- * @return true if @p s is at least as long as @p prefix and starts with it,
- *         ignoring case.
- */
-bool starts_with_ci(std::string_view s, std::string_view prefix);
-
-/**
- * @brief Drops "(+...)" fall-off markers like (+M) or (+N2) from a reaction side.
- *
- * @details Other parenthesized text is kept verbatim (unusual species names
- * may contain parens). The '+' inside "(+M)" must not be treated as a
- * species separator, so these groups are stripped before split_side() splits
- * on '+'.
- *
- * @param side One reaction side, e.g. "H+O2(+M)".
- * @return @p side with every "(+...)" fall-off marker removed.
- */
-std::string remove_falloff_markers(std::string_view side);
-
-/**
- * @brief Splits one reaction side into species_amount entries.
- *
- * @details Strips fall-off markers (see remove_falloff_markers()), splits
- * the remainder on '+', and parses each token's leading stoichiometric
- * coefficient (see utils::parse_coefficient()). Blank tokens and the bare
- * third-body marker ("M"/"m") are dropped, not appended to @p out.
- *
- * @param side     One reaction side, e.g. "2H+O2(+M)".
- * @param[out] out Species entries are appended here, in left-to-right order.
- */
-void split_side(std::string_view side, std::vector<species_amount>& out);
-
-/**
- * @brief Location and kind of a direction arrow found in a reaction string.
- *
- * @details Returned by find_arrow(). @ref pos is std::string_view::npos when
- * no arrow was found, in which case @ref len and @ref reversible are
- * meaningless.
- */
-struct arrow_info {
-  std::size_t pos = std::string_view::npos;  ///< Index where the arrow starts, or npos.
-  std::size_t len = 0;                       ///< Length of the arrow text (1, 2, or 3).
-  bool reversible = true;                    ///< true for `<=>` or `=`, false for `=>`.
-};
-
-/**
- * @brief Finds the direction arrow in a reaction string.
- *
- * @details Tries the longest/most specific form first -- `<=>`, then `=>`,
- * then `=` -- so the shorter arrows do not match inside the longer ones.
- *
- * @param t The text to search, typically a trimmed reaction line.
- * @return The first matching arrow's location and kind, or a default-constructed
- *         arrow_info (pos == std::string_view::npos) if none was found.
- */
-arrow_info find_arrow(std::string_view t);
-
-/**
- * @brief Finds the start offset of the trailing rate-coefficient tokens.
- *
- * @details A CHEMKIN reaction line always ends with exactly three
- * whitespace-delimited rate-coefficient tokens (A, n, Ea), regardless of how
- * A is written -- "174", "2277000000000000.0", and "6.1400e+05" are all
- * valid. Trying to classify a token as "numeric" up front is fragile:
- * scientific notation can itself contain a '+' (the exponent sign), which is
- * indistinguishable from a species-joining '+' by looking at one token
- * alone. Anchoring on a fixed count from the end of the line sidesteps that
- * ambiguity entirely: whatever the species text looks like, the products
- * always end where the last three whitespace-delimited tokens begin.
- *
- * @param rest The text after the direction arrow (products + rate tail).
- * @return The start offset of the first of the three trailing tokens, i.e.
- *         the products text is rest.substr(0, that offset). If fewer than
- *         three whitespace-delimited tokens exist, returns rest.size() (no
- *         rate tail to strip).
- */
-std::size_t rate_tail_start(std::string_view rest);
-
-/**
- * @brief Extracts the product portion of the text after a reaction's arrow.
- *
- * @details Everything before the trailing rate-coefficient tokens (see
- * rate_tail_start()).
- *
- * @param rest The text after the direction arrow (products + rate tail).
- * @return The product-side text, with the trailing rate tail removed.
- */
-std::string_view product_portion(std::string_view rest);
 
 /**
  * @brief Walks text one physical line at a time, invoking a callback per line.
  *
- * @details Splits @p text on '\\n' and calls `fn(line, line_number)` once per
+ * @details Splits @p text on '\n' and calls `fn(line, line_number)` once per
  * physical line (1-based), including a trailing line with no terminating
- * newline. Shared by scan_reactions() and scan_comments() so both see the
+ * newline. Shared by scan_reactions() and search_text() so both see the
  * exact same line/line-number splitting.
  *
  * @tparam Fn        Callable taking (std::string_view line, std::size_t line_number).
@@ -210,41 +105,40 @@ void for_each_line(std::string_view text, Fn&& fn) {
 bool is_reaction_line(std::string_view line);
 
 /**
- * @brief Splits one reaction line into a @ref reaction.
- *
- * @details Handles order-independent sides, stoichiometric coefficients
- * (2CH3, 2 CH3), (+M)/(+species) fall-off markers, bare M third body, and
- * trailing rate coefficients after the equation.
- *
- * @param line        One physical line, not yet trimmed.
- * @param line_number 1-based line number, stored on @p out for output.
- * @param[out] out    Populated with the parsed reaction on success; left
- *                     untouched on failure.
- * @return true if @p line is a parseable reaction, false otherwise.
- */
-bool parse_reaction_line(std::string_view line, std::size_t line_number, reaction& out);
-
-/**
  * @brief Scans a whole mechanism/text buffer and returns every reaction found.
  *
- * @details Stops nothing early; comments and keyword blocks are skipped, not
- * treated as errors.
+ * @details Comments and keyword blocks are skipped, not treated as errors.
+ * Each candidate line is parsed with parse_reaction_line(); the parser does
+ * not know where its text came from, so the 1-based line number is stamped
+ * on each result here.
  *
  * @param text The full text of a mechanism file.
  * @return Every reaction found, in source order.
  */
-std::vector<reaction> scan_reactions(std::string_view text);
+std::vector<parsed_reaction> scan_reactions(std::string_view text);
 
 /**
- * @brief Scans a whole mechanism/text buffer and returns every comment found.
+ * @brief Searches a whole mechanism/text buffer and returns every matching line.
  *
- * @details Covers both full-line ("! note") and inline trailing
- * ("H+H=H2 1e+14 0 0  ! note") comments.
+ * @details Walks the text once, line by line. Each line is split at its '!'
+ * into a reaction part and a comment part; the reaction part is parsed and
+ * tested against @p q (see matches()), and -- when
+ * search_options::search_comments is set -- the comment part is additionally
+ * tested for search_options::comment_needle as a case-insensitive substring
+ * (see utils::contains_ci()). A line that matches both ways is still one
+ * hit: the single pass renders one verdict per line before moving on, so
+ * results are deduplicated by construction and arrive in line order.
  *
- * @param text The full text of a mechanism file.
- * @return Every comment found, in source order.
+ * @param text The full text to search, e.g. one mechanism file's content.
+ * @param q    The parsed query to test reactions against.
+ * @param opts Match mode and comment-search settings; see search_options.
+ * @return Every matching line, in source order, one entry per line.
  */
-std::vector<comment> scan_comments(std::string_view text);
+std::vector<search_hit> search_text(
+    std::string_view text,
+    const query& q,
+    const search_options& opts
+);
 
 }  // namespace ckgrep
 /* ----------------------------------------------------------------------------------- *\

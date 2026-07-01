@@ -4,6 +4,8 @@ add_executable(
   test_query.cpp
   test_pattern.cpp
   test_matcher.cpp
+  test_reaction_parser.cpp
+  test_reaction_scanner.cpp
 )
 target_link_libraries(ckgrep_tests PRIVATE ckgrep_core GTest::gtest_main)
 
