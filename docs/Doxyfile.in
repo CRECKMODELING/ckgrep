@@ -1,0 +1,33 @@
+# Doxygen configuration template for ckgrep, configured by CMake (see
+# cmake/Documentation.cmake). Only values differing from the doxygen defaults
+# are listed. Output is LaTeX/PDF only; build it with:
+#   cmake -S . -B build -DBUILD_DOC=ON
+#   cmake --build build --target docs
+# The manual lands in <build dir>/docs/latex/refman.pdf.
+
+PROJECT_NAME           = ckgrep
+PROJECT_NUMBER         = @PROJECT_VERSION@
+PROJECT_BRIEF          = "A grep-like utility aware of the CHEMKIN format"
+PROJECT_LOGO           = @PROJECT_SOURCE_DIR@/assets/ckgrep-banner.png
+
+OUTPUT_DIRECTORY       = @CMAKE_BINARY_DIR@/docs
+INPUT                  = @PROJECT_SOURCE_DIR@/docs \
+                         @PROJECT_SOURCE_DIR@/source
+FILE_PATTERNS          = *.hpp \
+                         *.cpp \
+                         *.md
+RECURSIVE              = YES
+USE_MDFILE_AS_MAINPAGE = @PROJECT_SOURCE_DIR@/docs/usage.md
+
+EXTRACT_ALL            = YES
+WARN_IF_UNDOCUMENTED   = NO
+QUIET                  = YES
+
+GENERATE_HTML          = NO
+GENERATE_LATEX         = YES
+USE_PDFLATEX           = YES
+PDF_HYPERLINKS         = YES
+# Doxygen's LaTeX writer ignores PROJECT_LOGO, so the banner is placed on the
+# title page through a customized copy of the default header template
+# (regenerate the pristine template with `doxygen -w latex ...`).
+LATEX_HEADER           = @PROJECT_SOURCE_DIR@/docs/latex-header.tex
