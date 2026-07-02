@@ -59,10 +59,12 @@ TEST(ScanReactions, FalloffClassificationSurvivesScanning) {
   EXPECT_EQ(reactions[0].collider, "M");
 }
 
-// A small mechanism exercising every way a line can match: as a reaction, as
-// a comment, or both at once (line 2).
+// A small mechanism exercising every way a line can be commented: a prose
+// comment, a commented-out reaction, a live reaction with a prose trailing
+// comment, and a plain live reaction.
 constexpr std::string_view search_fixture =
     "! CH4 oxidation block\n"
+    "!H2+OH=H2O+H 1.0 0.0 0.0\n"
     "H+OH=H2O 1.0 0.0 0.0 ! H2O formation note\n"
     "CH4+O2=CO2+H2O 1.0 0.0 0.0\n";
 
@@ -70,50 +72,69 @@ TEST(SearchText, ReactionHitsArriveInLineOrder) {
   query q = parse_query("H2O");
   std::vector<search_hit> hits = search_text(search_fixture, q, {});
   ASSERT_EQ(hits.size(), 2U);
-  EXPECT_EQ(hits[0].line_number, 2U);
-  EXPECT_EQ(hits[1].line_number, 3U);
+  EXPECT_EQ(hits[0].line_number, 3U);
+  EXPECT_EQ(hits[1].line_number, 4U);
 }
 
 TEST(SearchText, LineMatchingAsReactionAndCommentIsOneHit) {
-  // Line 2 matches the query as a reaction AND carries "H2O" in its comment;
-  // it must be reported exactly once.
+  // The live reaction matches AND its trailing comment is a commented-out
+  // reaction that also matches; the line must be reported exactly once.
   query q = parse_query("H2O");
   search_options opts;
   opts.search_comments = true;
-  opts.comment_needle = "H2O";
-  std::vector<search_hit> hits = search_text(search_fixture, q, opts);
-  ASSERT_EQ(hits.size(), 2U);
-  EXPECT_EQ(hits[0].line_number, 2U);
-  EXPECT_EQ(hits[1].line_number, 3U);
+  std::vector<search_hit> hits =
+      search_text("H+OH=H2O 1.0 0.0 0.0 !H2+O=H2O 1.0 0.0 0.0\n", q, opts);
+  ASSERT_EQ(hits.size(), 1U);
 }
 
-TEST(SearchText, CommentOnlyLineFoundWithFlagInLineOrder) {
+TEST(SearchText, CommentedOutReactionFoundWithFlagInLineOrder) {
   query q = parse_query("H2O");
   search_options opts;
   opts.search_comments = true;
-  opts.comment_needle = "oxidation";
   std::vector<search_hit> hits = search_text(search_fixture, q, opts);
   ASSERT_EQ(hits.size(), 3U);
-  EXPECT_EQ(hits[0].line_number, 1U);  // full-line comment, before the reactions
-  EXPECT_EQ(hits[1].line_number, 2U);
-  EXPECT_EQ(hits[2].line_number, 3U);
+  EXPECT_EQ(hits[0].line_number, 2U);  // commented-out, before the live reactions
+  EXPECT_EQ(hits[1].line_number, 3U);
+  EXPECT_EQ(hits[2].line_number, 4U);
 }
 
-TEST(SearchText, CommentMatchIsCaseInsensitive) {
-  query q = parse_query("ZZZ");  // matches no reaction
+TEST(SearchText, ProseCommentsNeverMatch) {
+  // Line 1 mentions CH4 as prose and line 3 carries "H2O formation note";
+  // neither text parses as a reaction, so -c must not turn them into hits.
+  query q = parse_query("CH4");
   search_options opts;
   opts.search_comments = true;
-  opts.comment_needle = "OXIDATION";
   std::vector<search_hit> hits = search_text(search_fixture, q, opts);
+  ASSERT_EQ(hits.size(), 1U);
+  EXPECT_EQ(hits[0].line_number, 4U);
+}
+
+TEST(SearchText, CommentedOutReactionsIgnoredWithoutFlag) {
+  query q = parse_query("H2");  // only the commented-out reaction involves H2
+  EXPECT_TRUE(search_text(search_fixture, q, {}).empty());
+}
+
+TEST(SearchText, TrailingCommentedOutReactionFound) {
+  // A commented-out alternative stashed after a live reaction is findable
+  // even though the live reaction itself does not match.
+  query q = parse_query("CH3");
+  search_options opts;
+  opts.search_comments = true;
+  std::vector<search_hit> hits =
+      search_text("H+O2=OH+O 1.0 0.0 0.0 !CH4+M=CH3+H+M 1.0 0.0 0.0\n", q, opts);
   ASSERT_EQ(hits.size(), 1U);
   EXPECT_EQ(hits[0].line_number, 1U);
 }
 
-TEST(SearchText, CommentsIgnoredWithoutFlag) {
-  query q = parse_query("ZZZ");
+TEST(SearchText, CommentedOutReactionOwnTrailingCommentTruncated) {
+  // The commented-out reaction carries its own trailing comment; parsing
+  // must stop at the second '!' for the reaction to be recognized.
+  query q = parse_query("CH3");
   search_options opts;
-  opts.comment_needle = "oxidation";  // set but search_comments stays false
-  EXPECT_TRUE(search_text(search_fixture, q, opts).empty());
+  opts.search_comments = true;
+  std::vector<search_hit> hits =
+      search_text("!CH4+M=CH3+H+M 1.0 0.0 0.0 ! disabled\n", q, opts);
+  ASSERT_EQ(hits.size(), 1U);
 }
 
 TEST(SearchText, HitTextIsFullLineWithComment) {

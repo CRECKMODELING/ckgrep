@@ -29,20 +29,18 @@
 #include "reaction_parser.hpp"
 
 namespace ckgrep {
-
 /**
  * @brief Everything that shapes a search besides the query itself.
  *
  * @details Mirrors the CLI flags: @ref mode is `-e/--exact`, @ref
- * search_comments is `-c/--comments`. @ref comment_needle is the raw query
- * text, matched as a plain case-insensitive substring inside comment text
- * when @ref search_comments is on -- comments are prose, so the species
- * grammar does not apply to them.
+ * search_comments is `-c/--comments`. With @ref search_comments on, text
+ * behind a '!' is not discarded a priori: it goes through the same reaction
+ * pipeline as live lines, so a commented-out reaction that matches the query
+ * is a hit while prose comments never match.
  */
 struct search_options {
   match_mode mode = match_mode::contains;  ///< How strictly reactions must match.
-  bool search_comments = false;  ///< Also search comment text (the -c flag).
-  std::string comment_needle;    ///< Substring to find in comments; the raw query text.
+  bool search_comments = false;  ///< Also match commented-out reactions (the -c flag).
 };
 
 /**
@@ -123,22 +121,27 @@ std::vector<parsed_reaction> scan_reactions(std::string_view text);
  * @details Walks the text once, line by line. Each line is split at its '!'
  * into a reaction part and a comment part; the reaction part is parsed and
  * tested against @p q (see matches()), and -- when
- * search_options::search_comments is set -- the comment part is additionally
- * tested for search_options::comment_needle as a case-insensitive substring
- * (see utils::contains_ci()). A line that matches both ways is still one
- * hit: the single pass renders one verdict per line before moving on, so
- * results are deduplicated by construction and arrive in line order.
+ * search_options::search_comments is set -- the comment part (truncated at
+ * any further '!') is run through the exact same pipeline, so a commented-out
+ * reaction is found while prose comments never match. A line that matches
+ * both ways is still one hit: the single pass renders one verdict per line
+ * before moving on, so results are deduplicated by construction and arrive
+ * in line order.
  *
  * @param text The full text to search, e.g. one mechanism file's content.
  * @param q    The parsed query to test reactions against.
  * @param opts Match mode and comment-search settings; see search_options.
  * @return Every matching line, in source order, one entry per line.
  */
-std::vector<search_hit> search_text(
-    std::string_view text,
-    const query& q,
-    const search_options& opts
-);
+std::vector<search_hit>
+search_text(std::string_view text, const query& q, const search_options& opts);
+
+// Keyword / sub-data lines that are not reactions.
+static constexpr std::array<std::string_view, 20> keywords = {
+    "ELEM",      "ELEMENTS", "SPEC",      "SPECIES", "THER", "THERMO", "REAC",
+    "REACTIONS", "END",      "PLOG",      "LOW",     "HIGH", "TROE",   "SRI",
+    "REV",       "DUP",      "DUPLICATE", "FORD",    "RORD", "UNITS"
+};
 
 }  // namespace ckgrep
 /* ----------------------------------------------------------------------------------- *\

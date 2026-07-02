@@ -41,7 +41,8 @@ std::unique_ptr<argparse::ArgumentParser> parse_args(int argc, char** argv) {
       .help("Whether the query must match exactly")
       .flag();
   program->add_argument("-c", "--comments")
-      .help("Also search comment text (lines/trailing text after '!') for the query")
+      .help("Also match commented-out reactions (text after '!' that parses as a "
+            "matching reaction)")
       .flag();
   // clang-format on
 

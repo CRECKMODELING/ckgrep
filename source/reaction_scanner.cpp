@@ -38,17 +38,13 @@ bool is_reaction_line(std::string_view line) {
   if (t.front() == '!') {  // comment
     return false;
   }
-  // Keyword / sub-data lines that are not reactions.
-  static constexpr std::array<std::string_view, 20> keywords = {
-      "ELEM",      "ELEMENTS", "SPEC",      "SPECIES", "THER", "THERMO", "REAC",
-      "REACTIONS", "END",      "PLOG",      "LOW",     "HIGH", "TROE",   "SRI",
-      "REV",       "DUP",      "DUPLICATE", "FORD",    "RORD", "UNITS"
-  };
+
   for (std::string_view kw : keywords) {
     if (utils::starts_with_ci(t, kw)) {
       return false;
     }
   }
+
   // Must contain a direction arrow / equals to be a reaction.
   return find_arrow(t).pos != std::string_view::npos;
 }
@@ -75,33 +71,32 @@ std::vector<parsed_reaction> scan_reactions(std::string_view text) {
   return result;
 }
 
-std::vector<search_hit> search_text(
-    std::string_view text,
-    const query& q,
-    const search_options& opts
-) {
+std::vector<search_hit>
+search_text(std::string_view text, const query& q, const search_options& opts) {
   std::vector<search_hit> hits;
 
   for_each_line(text, [&](std::string_view line, std::size_t line_number) {
     // One verdict per line: split at '!' into reaction and comment parts,
-    // test each against its own kind of match, emit at most one hit.
+    // and run both through the same reaction pipeline -- the comment part
+    // only matches if it is a commented-out reaction that matches the query.
     const std::size_t bang = line.find('!');
     const std::string_view reaction_part =
         (bang == std::string_view::npos) ? line : line.substr(0, bang);
 
-    bool hit = false;
-    if (is_reaction_line(reaction_part)) {
-      if (std::optional<parsed_reaction> r = parse_reaction_line(reaction_part);
-          r && matches(q, *r, opts.mode)) {
-        hit = true;
+    auto matches_as_reaction = [&](std::string_view part) {
+      if (!is_reaction_line(part)) {
+        return false;
       }
-    }
+      std::optional<parsed_reaction> r = parse_reaction_line(part);
+      return r && matches(q, *r, opts.mode);
+    };
+
+    bool hit = matches_as_reaction(reaction_part);
     if (!hit && opts.search_comments && bang != std::string_view::npos) {
-      std::string_view comment_part = utils::trim(line.substr(bang + 1));
-      if (!comment_part.empty() &&
-          utils::contains_ci(comment_part, opts.comment_needle)) {
-        hit = true;
-      }
+      // A commented-out reaction may carry its own trailing comment; parse
+      // only up to the next '!'.
+      std::string_view comment_part = line.substr(bang + 1);
+      hit = matches_as_reaction(comment_part.substr(0, comment_part.find('!')));
     }
     if (hit) {
       hits.push_back({line_number, std::string(utils::trim(line))});
@@ -110,7 +105,6 @@ std::vector<search_hit> search_text(
 
   return hits;
 }
-
 }  // namespace ckgrep
 /* ----------------------------------------------------------------------------------- *\
 |                                                                                       |
