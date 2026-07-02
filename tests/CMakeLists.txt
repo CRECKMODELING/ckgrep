@@ -1,3 +1,6 @@
+# -----------------------------------------------------------------------------
+# ckgrep_tests - GoogleTest suite over the core library
+# -----------------------------------------------------------------------------
 add_executable(
   ckgrep_tests
   test_string_utils.cpp
@@ -9,10 +12,17 @@ add_executable(
 )
 target_link_libraries(ckgrep_tests PRIVATE ckgrep_core GTest::gtest_main)
 
+# Register every TEST() as an individual ctest entry
 include(GoogleTest)
 gtest_discover_tests(ckgrep_tests)
 
-if(ckgrep_ENABLE_COVERAGE)
+# -----------------------------------------------------------------------------
+# 'coverage' target - runs the instrumented test suite, merges the profile
+# data, prints a per-file summary, and writes an HTML report. The
+# instrumentation flags come from cmake/CompilerOptions.cmake
+# (-DENABLE_COVERAGE=ON).
+# -----------------------------------------------------------------------------
+if(ENABLE_COVERAGE)
   find_program(LLVM_PROFDATA llvm-profdata)
   find_program(LLVM_COV llvm-cov)
   if((NOT LLVM_PROFDATA OR NOT LLVM_COV) AND APPLE)
@@ -31,8 +41,8 @@ if(ckgrep_ENABLE_COVERAGE)
   if(NOT LLVM_PROFDATA OR NOT LLVM_COV)
     message(
       FATAL_ERROR
-      "ckgrep_ENABLE_COVERAGE requires llvm-profdata and llvm-cov (install"
-      " LLVM or Xcode Command Line Tools)"
+      "ENABLE_COVERAGE requires llvm-profdata and llvm-cov (install LLVM or"
+      " Xcode Command Line Tools)"
     )
   endif()
 

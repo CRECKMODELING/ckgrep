@@ -1,6 +1,9 @@
 # -----------------------------------------------------------------------------
-# argparse - header-only input argument parser
+# argparse - header-only command line argument parser
 # https://github.com/p-ranav/argparse
+#
+# Fetched at configure time; provides the `argparse` INTERFACE target that the
+# ckgrep executable links against.
 # -----------------------------------------------------------------------------
 message(STATUS "Fetching argparse ...")
 include(FetchContent)
