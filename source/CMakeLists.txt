@@ -16,15 +16,16 @@ add_library(
 )
 target_include_directories(ckgrep_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ckgrep_core PUBLIC ckgrep_compiler_options)
+# Single source of truth for the version printed by --version and the logo:
+# the project() version in the top-level CMakeLists.txt. Defined PUBLIC on the
+# core library because both utils.cpp (core) and cli.cpp (executable) use it.
+target_compile_definitions(ckgrep_core PUBLIC CKGREP_VERSION="${PROJECT_VERSION}")
 
 # -----------------------------------------------------------------------------
 # Main executable
 # -----------------------------------------------------------------------------
 add_executable(ckgrep cli.cpp main.cpp)
 target_link_libraries(ckgrep PRIVATE ckgrep_core argparse)
-# Single source of truth for the version printed by `ckgrep --version`:
-# the project() version in the top-level CMakeLists.txt
-target_compile_definitions(ckgrep PRIVATE CKGREP_VERSION="${PROJECT_VERSION}")
 
 # -----------------------------------------------------------------------------
 # Installation - `cmake --install <build dir> [--prefix <path>]`
