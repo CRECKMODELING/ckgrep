@@ -253,6 +253,23 @@ parsed_side parse_reaction_side(std::string_view side);
  *         species on either side.
  */
 std::optional<parsed_reaction> parse_reaction_line(std::string_view line);
+
+/**
+ * @brief Renders a parsed reaction back to normalized, column-aligned text.
+ *
+ * @details The display-oriented inverse of parse_reaction_line(): species are
+ * joined with " + " (coefficients keep their compact "2H"/"0.5OH" spelling),
+ * the arrow is normalized to `<=>` for reversible reactions and `=>` for
+ * irreversible ones, third-body markers are re-attached to both sides, and
+ * the Arrhenius triple -- when the line carried one -- is appended as
+ * labeled, fixed-width fields so consecutive lines columnize. Comments never
+ * appear: the parser already dropped them.
+ *
+ * @param r A reaction produced by parse_reaction_line().
+ * @return One line of normalized text, e.g.
+ *         "H + CH3 (+M) <=> CH4 (+M)   A= 1.2700e+16  n=  -0.630  Ea=     383.00".
+ */
+std::string format_reaction(const parsed_reaction& r);
 }  // namespace ckgrep
 /* ----------------------------------------------------------------------------------- *\
 |                                                                                       |

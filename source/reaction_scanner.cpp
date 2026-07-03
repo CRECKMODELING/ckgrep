@@ -83,23 +83,30 @@ search_text(std::string_view text, const query& q, const search_options& opts) {
     const std::string_view reaction_part =
         (bang == std::string_view::npos) ? line : line.substr(0, bang);
 
-    auto matches_as_reaction = [&](std::string_view part) {
+    auto matching_reaction =
+        [&](std::string_view part) -> std::optional<parsed_reaction> {
       if (!is_reaction_line(part)) {
-        return false;
+        return std::nullopt;
       }
       std::optional<parsed_reaction> r = parse_reaction_line(part);
-      return r && matches(q, *r, opts.mode);
+      if (r && matches(q, *r, opts.mode)) {
+        return r;
+      }
+      return std::nullopt;
     };
 
-    bool hit = matches_as_reaction(reaction_part);
+    std::optional<parsed_reaction> hit = matching_reaction(reaction_part);
     if (!hit && opts.search_comments && bang != std::string_view::npos) {
       // A commented-out reaction may carry its own trailing comment; parse
       // only up to the next '!'.
       std::string_view comment_part = line.substr(bang + 1);
-      hit = matches_as_reaction(comment_part.substr(0, comment_part.find('!')));
+      hit = matching_reaction(comment_part.substr(0, comment_part.find('!')));
     }
     if (hit) {
-      hits.push_back({line_number, std::string(utils::trim(line))});
+      hits.push_back({
+          line_number,
+          opts.pretty ? format_reaction(*hit) : std::string(utils::trim(line)),
+      });
     }
   });
 

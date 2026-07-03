@@ -1,6 +1,5 @@
 #include "cli.hpp"
 
-#include <format>
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -21,7 +20,36 @@ std::unique_ptr<argparse::ArgumentParser> parse_args(int argc, char** argv) {
       argparse::default_arguments::none
   );
 
+  program->add_description(
+      "Searches CHEMKIN reaction mechanisms by chemistry, not by text: queries "
+      "name species,\nnot strings, so CH4 does not match CH4O and H+H matches 2H."
+  );
+
   // clang-format off
+  program->add_epilog(
+      "Query syntax:\n"
+      "  A query is one or more species, optionally split across a reaction arrow\n"
+      "  (=, =>, <=>) to anchor reactants and/or products. Species on one side are\n"
+      "  joined with + and are all required. Matching is case-insensitive.\n"
+      "\n"
+      "    CH4          reactions where CH4 participates, on either side\n"
+      "    OH+CH4=      OH and CH4 together as reactants\n"
+      "    =CO2         CO2 among the products\n"
+      "    =2H          two H atoms produced, spelled 2H or H+H in the file\n"
+      "    C3H5*        any species starting with C3H5 (globs match whole names)\n"
+      "    ?C3H7        NC3H7 or IC3H7 (? matches exactly one character)\n"
+      "    (+M)         fall-off reactions; a bare M: third-body reactions\n"
+      "\n"
+      "Examples:\n"
+      "  ckgrep \"CH4\" mechanism.CKI             methane chemistry in one file\n"
+      "  ckgrep -e \"H+O2=OH+O\" kinetics/        exact reaction, whole directory\n"
+      "  ckgrep -c \"CH3O2=CH2O+OH\" mech.CKI     commented-out reactions too\n"
+      "  ckgrep -p \"CH4\" mechanism.CKI          normalized, column-aligned output\n"
+      "\n"
+      "Always quote the query: =, *, ?, ( and ) are shell metacharacters.\n"
+      "Exits 0 when something matched, 1 when nothing did, 2 on a malformed query."
+  );
+
   program->add_argument("-h", "--help")
       .help("Show this help message and exit")
       .flag();
@@ -44,6 +72,10 @@ std::unique_ptr<argparse::ArgumentParser> parse_args(int argc, char** argv) {
       .help("Also match commented-out reactions (text after '!' that parses as a "
             "matching reaction)")
       .flag();
+  program->add_argument("-p", "--pretty")
+      .help("Reformat matches from the parsed reaction: normalized spacing, "
+            "aligned rate columns, comments dropped")
+      .flag();
   // clang-format on
 
   // Handle --help before full parsing, since 'query' is required and would
@@ -57,7 +89,7 @@ std::unique_ptr<argparse::ArgumentParser> parse_args(int argc, char** argv) {
       std::exit(0);
     }
     if (arg == "-v" || arg == "--version") {
-      std::cout << std::format(" Version: {}\n", CKGREP_VERSION);
+      std::cout << " Version: " << CKGREP_VERSION << "\n";
       std::exit(0);
     }
   }

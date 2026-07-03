@@ -33,14 +33,18 @@ namespace ckgrep {
  * @brief Everything that shapes a search besides the query itself.
  *
  * @details Mirrors the CLI flags: @ref mode is `-e/--exact`, @ref
- * search_comments is `-c/--comments`. With @ref search_comments on, text
- * behind a '!' is not discarded a priori: it goes through the same reaction
- * pipeline as live lines, so a commented-out reaction that matches the query
- * is a hit while prose comments never match.
+ * search_comments is `-c/--comments`, @ref pretty is `-p/--pretty`. With
+ * @ref search_comments on, text behind a '!' is not discarded a priori: it
+ * goes through the same reaction pipeline as live lines, so a commented-out
+ * reaction that matches the query is a hit while prose comments never match.
+ * With @ref pretty on, hits carry format_reaction() output instead of the
+ * raw line -- normalized spacing, aligned rate columns, comments dropped
+ * (including the '!' of a commented-out reaction).
  */
 struct search_options {
   match_mode mode = match_mode::contains;  ///< How strictly reactions must match.
   bool search_comments = false;  ///< Also match commented-out reactions (the -c flag).
+  bool pretty = false;  ///< Reformat hits via format_reaction() (the -p flag).
 };
 
 /**

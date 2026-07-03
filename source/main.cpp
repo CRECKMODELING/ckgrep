@@ -39,6 +39,7 @@ int main(int argc, char** argv) {
     opts.mode = ckgrep::match_mode::exact;
   }
   opts.search_comments = program->get<bool>("--comments");
+  opts.pretty = program->get<bool>("--pretty");
 
   // parsing and analyzing the query this instantiate the query parsing engine see the
   // doc to understand how to generate an appropriate query

@@ -21,6 +21,7 @@
 #include <cerrno>
 #include <cstddef>
 #include <cstdlib>
+#include <format>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -213,6 +214,43 @@ std::optional<parsed_reaction> parse_reaction_line(std::string_view line) {
   r.reactants = std::move(reactants.species);
   r.products = std::move(products.species);
   return r;
+}
+
+std::string format_reaction(const parsed_reaction& r) {
+  auto side_text = [&](const std::vector<parsed_species>& side) {
+    std::string out;
+    for (const parsed_species& sp : side) {
+      if (!out.empty()) {
+        out += "+";
+      }
+      if (sp.coefficient != 1.0) {
+        out += std::format("{:g}", sp.coefficient);
+      }
+      out += sp.name;
+    }
+    // CHEMKIN writes the marker on both sides: the mixture reads as one more
+    // species, the fall-off group attaches without a joining '+'.
+    if (r.third_body == third_body_kind::mixture) {
+      out += "+M";
+    } else if (r.third_body == third_body_kind::falloff) {
+      out += std::format("(+{})", r.collider);
+    }
+    return out;
+  };
+
+  std::string reaction = std::format(
+      "{}{}{}",
+      side_text(r.reactants),
+      r.reversible ? "=" : "=>",
+      side_text(r.products)
+  );
+  if (!r.arrhenius) {
+    return reaction;
+  }
+  // Width 13 fits {:.5E} with its sign (up to "-1.40000E+00"), so the three
+  // columns stay aligned whether or not a value is negative.
+  const auto& [a, n, ea] = *r.arrhenius;
+  return std::format("{:<30}  {:>13.5E}  {:>13.5E}  {:>13.5E}", reaction, a, n, ea);
 }
 }  // namespace ckgrep
 /* ----------------------------------------------------------------------------------- *\
