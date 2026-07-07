@@ -40,6 +40,7 @@ redirected output stays plain, and setting the NO_COLOR environment variable
 | `-e`, `--exact` | Require the whole reaction to match the query exactly, instead of "contains". |
 | `-c`, `--comments` | Also match commented-out reactions (text after `!` that parses as a matching reaction). |
 | `-p`, `--pretty` | Reformat matches from the parsed reaction instead of printing the raw line. |
+| `-H`, `--with-filename` | Always print the file name, even for a single file (editor/tooling integration). |
 | `-h`, `--help` | Show usage and exit. |
 | `-v`, `--version` | Show the version and exit. |
 

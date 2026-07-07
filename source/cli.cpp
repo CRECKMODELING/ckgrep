@@ -1,10 +1,28 @@
-#include "cli.hpp"
-
+/* ----------------------------------------------------------------------------------- *\
+|                                 __                                                    |
+|                           _____/ /______ _________  ____                              |
+|                          / ___/ //_/ __ `/ ___/ _ \/ __ \                             |
+|                         / /__/ ,< / /_/ / /  /  __/ /_/ /                             |
+|                         \___/_/|_|\__, /_/   \___/ .___/                              |
+|                                  /____/         /_/                                   |
+|                                                                                       |
+| ------------------------------------------------------------------------------------- |
+|  See license and copyright at the end of this file.                                   |
+| ------------------------------------------------------------------------------------- |
+|                                                                                       |
+|          Author: Timoteo Dinelli  <timoteo.dinelli@polimi.it>                         |
+|                                                                                       |
+|                  CRECK Modeling Lab <https://www.creckmodeling.polimi.it>             |
+|                  Department of Chemistry, Materials and Chemical Engineering          |
+|                  Politecnico di Milano, P.zza Leonardo da Vinci 32, 20133 Milano      |
+|                                                                                       |
+\* ----------------------------------------------------------------------------------- */
 #include <iostream>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include "cli.hpp"
 #include "utils.hpp"
 
 #ifndef CKGREP_VERSION
@@ -76,6 +94,10 @@ std::unique_ptr<argparse::ArgumentParser> parse_args(int argc, char** argv) {
       .help("Reformat matches from the parsed reaction: normalized spacing, "
             "aligned rate columns, comments dropped")
       .flag();
+  program->add_argument("-H", "--with-filename")
+      .help("Always print the file name, even when searching a single file "
+            "(for editor/tooling integration)")
+      .flag();
   // clang-format on
 
   // Handle --help before full parsing, since 'query' is required and would
@@ -106,3 +128,22 @@ std::unique_ptr<argparse::ArgumentParser> parse_args(int argc, char** argv) {
   return program;
 }
 }  // namespace ckgrep::cli
+/* ----------------------------------------------------------------------------------- *\
+|                                                                                       |
+|     GNU General Public License v3 (GPL-3)                                             |
+|                                                                                       |
+|     Copyright (c) 2026 Timoteo Dinelli                                                |
+|                                                                                       |
+|     This program is free software: you can redistribute it and/or modify it           |
+|     under the terms of the GNU General Public License as published by the Free        |
+|     Software Foundation, either version 3 of the License, or (at your option)         |
+|     any later version.                                                                |
+|                                                                                       |
+|     This program is distributed in the hope that it will be useful, but WITHOUT       |
+|     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS     |
+|     FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.    |
+|                                                                                       |
+|     You should have received a copy of the GNU General Public License along with      |
+|     this program. If not, see <https://www.gnu.org/licenses/>.                        |
+|                                                                                       |
+\* ----------------------------------------------------------------------------------- */

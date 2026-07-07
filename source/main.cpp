@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
     files.insert(files.end(), resolved.begin(), resolved.end());
   }
 
-  bool show_path = files.size() > 1;
+  bool show_path = files.size() > 1 || program->get<bool>("--with-filename");
   std::size_t total_hits = 0;
 
   for (const auto& file : files) {
