@@ -19,6 +19,7 @@
 \* ----------------------------------------------------------------------------------- */
 #pragma once
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <string>
@@ -219,6 +220,41 @@ contains_ci(std::string_view haystack, std::string_view needle) {
  */
 [[nodiscard]] constexpr bool is_ascii_digit(const char c) {
   return c >= '0' && c <= '9';
+}
+
+/**
+ * @brief Tests whether a byte is an ASCII letter or digit ('0'-'9', 'A'-'Z', 'a'-'z').
+ *
+ * @param c The byte to test.
+ * @return true if @p c is an ASCII letter or digit, false otherwise.
+ */
+[[nodiscard]] constexpr bool is_ascii_alnum(const char c) {
+  return is_ascii_digit(c) || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+}
+
+/**
+ * @brief Tests whether a token could plausibly be a species name.
+ *
+ * @details A species name must contain at least one ASCII letter or digit.
+ * This rejects tokens made up purely of leftover query/reaction punctuation
+ * (e.g. "==", "+", "=+=") that arise when arrow/plus characters are split and
+ * trimmed but do not actually delimit a species, so they are not mistaken for
+ * one.
+ *
+ * @param token The candidate species text, already stripped of any
+ *              coefficient (see parse_coefficient()).
+ * @return true if @p token contains at least one alphanumeric character.
+ *
+ * @code
+ * looks_like_species_name("CH4");  // -> true
+ * looks_like_species_name("==");   // -> false
+ * looks_like_species_name("");     // -> false
+ * @endcode
+ */
+[[nodiscard]] constexpr bool looks_like_species_name(std::string_view token) {
+  return std::any_of(token.begin(), token.end(), [](char c) {
+    return is_ascii_alnum(c);
+  });
 }
 
 /**

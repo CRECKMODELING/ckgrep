@@ -238,6 +238,22 @@ TEST(ParseCoefficient, SpeciesNameStartingWithDigitIsNotMistakenForCoefficient) 
   EXPECT_EQ(t.species, "CH3");
 }
 
+TEST(LooksLikeSpeciesName, AlphanumericTokenPasses) {
+  EXPECT_TRUE(looks_like_species_name("CH4"));
+  EXPECT_TRUE(looks_like_species_name("13CH3"));
+  EXPECT_TRUE(looks_like_species_name("C3H5*"));
+}
+
+TEST(LooksLikeSpeciesName, PunctuationOnlyTokenFails) {
+  EXPECT_FALSE(looks_like_species_name("=="));
+  EXPECT_FALSE(looks_like_species_name("+"));
+  EXPECT_FALSE(looks_like_species_name("=+="));
+}
+
+TEST(LooksLikeSpeciesName, EmptyTokenFails) {
+  EXPECT_FALSE(looks_like_species_name(""));
+}
+
 TEST(ExpansionCount, IntegerCoefficientExpands) {
   EXPECT_EQ(expansion_count(2.0), 2);
   EXPECT_EQ(expansion_count(1.0), 1);

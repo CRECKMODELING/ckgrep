@@ -137,7 +137,7 @@ parsed_side parse_reaction_side(std::string_view side) {
     }
     utils::coefficient_token parsed = utils::parse_coefficient(token);
     std::string_view name = utils::trim(parsed.species);
-    if (name.empty()) {
+    if (name.empty() || !utils::looks_like_species_name(name)) {
       continue;
     }
     // Bare third-body 'M' is a property of the reaction, not a species. A

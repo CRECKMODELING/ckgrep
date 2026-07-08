@@ -320,6 +320,15 @@ TEST(ParseReactionLine, NoArrowReturnsEmpty) {
   EXPECT_FALSE(parse_reaction_line("ELEMENTS H O C").has_value());
 }
 
+TEST(ParseReactionLine, PunctuationOnlySidesReturnEmpty) {
+  // "===", "==+", "=+=" split into an arrow plus leftover punctuation tokens
+  // ("==", "+", etc.) that are not species names; the whole line must be
+  // rejected rather than treated as a reaction with a bogus species.
+  EXPECT_FALSE(parse_reaction_line("===").has_value());
+  EXPECT_FALSE(parse_reaction_line("==+").has_value());
+  EXPECT_FALSE(parse_reaction_line("=+=").has_value());
+}
+
 TEST(ParseReactionLine, MissingRateTailKeepsAllProducts) {
   // With no numeric tail the whole remainder is product text; the old blind
   // "strip the last three tokens" behavior would have eaten "H2O + O".
