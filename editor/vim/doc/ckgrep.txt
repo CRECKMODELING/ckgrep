@@ -1,0 +1,46 @@
+*ckgrep.txt*  Search CHEMKIN reaction mechanisms by chemistry
+
+Author:  Timoteo Dinelli
+License: GPL-3.0-or-later (same as ckgrep)
+
+==============================================================================
+INTRODUCTION                                                          *ckgrep*
+
+This plugin integrates the ckgrep command line tool with Vim's quickfix
+list: search a CHEMKIN mechanism by chemistry (species, sides, third
+bodies), then jump between the matching reaction lines as you would with
+|:grep| results.
+
+The ckgrep binary must be installed and reachable; see
+https://github.com/tdinelli/ckgrep for binaries and query syntax.
+
+==============================================================================
+COMMANDS                                                             *:Ckgrep*
+
+:Ckgrep[!] {query} [files...]
+    Runs ckgrep with the given arguments and opens the quickfix window
+    with the matching lines. {query} follows ckgrep's query grammar and
+    should be quoted; ckgrep flags pass through unchanged.
+
+    With no files the search targets the file behind the current buffer.
+    With the bang, :Ckgrep! searches the current directory recursively
+    (ckgrep's own default). Naming files or directories explicitly always
+    wins over both. Examples: >
+
+        :Ckgrep "OH+CH4="                   " current buffer's file
+        :Ckgrep! "OH+CH4="                  " whole directory, recursive
+        :Ckgrep -e "H+O2=OH+O" kinetics/    " explicit paths
+        :Ckgrep -c "CH3O2=CH2O+OH" mech.CKI
+<
+    A malformed query is reported as an error message; a query with no
+    matches leaves the quickfix list untouched.
+
+==============================================================================
+CONFIGURATION                                            *g:ckgrep_executable*
+
+g:ckgrep_executable
+    Path to the ckgrep binary. Only needed when ckgrep is not on $PATH: >
+
+        let g:ckgrep_executable = '/opt/ckgrep/bin/ckgrep'
+<
+ vim:tw=78:ts=8:noet:ft=help:norl:

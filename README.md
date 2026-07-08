@@ -89,6 +89,7 @@ Flags:
 - `-e`, `--exact`: require an exact species match instead of "contains".
 - `-c`, `--comments`: also match commented-out reactions (text after `!` that parses as a matching reaction); see [Commented-out reactions](#commented-out-reactions--c).
 - `-p`, `--pretty`: reformat matches from the parsed reaction instead of printing the raw line; see [Pretty output](#pretty-output--p).
+- `-H`, `--with-filename`: always print the file name, even when searching a single file, meant for editor/tooling integration.
 - `-h`, `--help`: show usage.
 - `-v`, `--version`: show the version.
 
@@ -256,6 +257,10 @@ $ ckgrep -p -c "CH3O2=CH2O+OH" examples/C3-V4.0.1-FULL.CKI
 2328: CH3O2=CH2O+OH                                                             8.25000E+02    8.50000E-01    3.90000E+04
 2330: CH3O2=CH2O+OH                                                             4.31000E+19   -3.86000E+00    3.62700E+04
 ```
+
+## Editor integration
+
+A Vim/Neovim plugin ships in [`editor/vim`](editor/vim): `:Ckgrep "OH+CH4=" mechanism.CKI` puts the matching reactions in the quickfix list, so `<Enter>` jumps straight to the line in the mechanism file. See [its README](editor/vim/README.md) for installation.
 
 ---
 
