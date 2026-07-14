@@ -44,9 +44,16 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
 Manually (Vim 8+ native packages):
 
 ```bash
-git clone https://github.com/tdinelli/ckgrep
+git clone https://github.com/tdinelli/ckgrep ~/ckgrep-src
 mkdir -p ~/.vim/pack/plugins/start
-ln -s "$PWD/ckgrep/editor/vim" ~/.vim/pack/plugins/start/vim-ckgrep
+ln -s ~/ckgrep-src/editor/vim ~/.vim/pack/plugins/start/vim-ckgrep
+```
+
+Manually (neovim)
+```bash
+git clone https://github.com/tdinelli/ckgrep ~/ckgrep-src
+mkdir -p ~/.local/share/nvim/site/pack/plugins/start
+ln -s ~/ckgrep-src/editor/vim ~/.local/share/nvim/site/pack/plugins/start/vim-ckgrep
 ```
 
 Then `:helptags ALL` once, and `:help ckgrep` for the documentation.
