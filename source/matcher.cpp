@@ -118,6 +118,17 @@ bool third_body_matches(const query& q, const parsed_reaction& r, match_mode mod
   return true;
 }
 
+bool matches_oriented(const query& q, const parsed_reaction& r, match_mode mode) {
+  bool ok = true;
+  if (q.reactants) {
+    ok = ok && side_matches(*q.reactants, r.reactants, mode);
+  }
+  if (q.products) {
+    ok = ok && side_matches(*q.products, r.products, mode);
+  }
+  return ok;
+}
+
 bool matches(const query& q, const parsed_reaction& r, match_mode mode) {
   if (!third_body_matches(q, r, mode)) {
     return false;
@@ -128,14 +139,21 @@ bool matches(const query& q, const parsed_reaction& r, match_mode mode) {
            side_matches(*q.any, r.products, mode);
   }
 
-  bool ok = true;
-  if (q.reactants) {
-    ok = ok && side_matches(*q.reactants, r.reactants, mode);
+  // A reversible line (<=> or =) runs both ways, so which side was typed as
+  // "reactants" is just an authoring choice: also test the query against the
+  // line with reactants and products swapped. An irreversible line (=>) is a
+  // distinct physical reaction from its reverse, so it is only ever tested
+  // as written.
+  if (matches_oriented(q, r, mode)) {
+    return true;
   }
-  if (q.products) {
-    ok = ok && side_matches(*q.products, r.products, mode);
+  if (!r.reversible) {
+    return false;
   }
-  return ok;
+  parsed_reaction swapped = r;
+  swapped.reactants = r.products;
+  swapped.products = r.reactants;
+  return matches_oriented(q, swapped, mode);
 }
 }  // namespace ckgrep
 /* ----------------------------------------------------------------------------------- *\

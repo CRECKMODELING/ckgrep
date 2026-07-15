@@ -138,18 +138,41 @@ bool find_augmenting_path(
 bool third_body_matches(const query& q, const parsed_reaction& r, match_mode mode);
 
 /**
- * @brief Tests whether a reaction satisfies a query under a given match mode.
+ * @brief Tests query::reactants/query::products against one fixed orientation of @p r.
  *
  * @details query::reactants and query::products, when set, anchor to the
  * matching reaction side: each side present in @p q must independently
  * satisfy side_matches() against the corresponding side of @p r (an AND
- * across the sides that were constrained). query::any, when set instead,
- * is tested against the reactants OR the products of @p r (either-side
- * default, see query for which mode a parsed query is in). In every mode
- * the reaction's third body must additionally satisfy the query's
- * third-body constraint (see third_body_matches()); a query that consists
- * of only a third-body marker constrains nothing else and therefore matches
- * every reaction of that kind.
+ * across the sides that were constrained). Neither side being set trivially
+ * succeeds. This is the oriented half of matches(): it does not consult
+ * parsed_reaction::reversible or try the swapped orientation, so callers
+ * that care about reversibility call it once as written and, if that fails,
+ * again with @p r's sides swapped.
+ *
+ * @param q    The parsed query to test; query::any is not consulted here.
+ * @param r    The reaction to test it against, in the orientation as given.
+ * @param mode How strictly each side must line up; see match_mode.
+ * @return true if @p r, in the orientation given, satisfies @p q's
+ *         reactants/products constraints under @p mode.
+ */
+bool matches_oriented(const query& q, const parsed_reaction& r, match_mode mode);
+
+/**
+ * @brief Tests whether a reaction satisfies a query under a given match mode.
+ *
+ * @details query::any, when set, is tested against the reactants OR the
+ * products of @p r (either-side default, see query for which mode a parsed
+ * query is in). Otherwise query::reactants and query::products are tested
+ * against @p r via matches_oriented(). A reversible @p r (parsed_reaction::reversible,
+ * true for `<=>` or `=`) runs both ways, so which side was written as
+ * reactants is just an authoring choice: when the as-written orientation
+ * does not satisfy @p q, an irreversible reaction fails outright, but a
+ * reversible one is also tried with reactants and products swapped, and
+ * matches if either orientation succeeds. In every mode the reaction's
+ * third body must additionally satisfy the query's third-body constraint
+ * (see third_body_matches()); a query that consists of only a third-body
+ * marker constrains nothing else and therefore matches every reaction of
+ * that kind.
  *
  * @param q    The parsed query to test.
  * @param r    The reaction to test it against.

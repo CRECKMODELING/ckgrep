@@ -19,6 +19,7 @@
 \* ----------------------------------------------------------------------------------- */
 #include <gtest/gtest.h>
 
+#include <optional>
 #include <vector>
 
 #include "matcher.hpp"
@@ -178,9 +179,21 @@ TEST(Matches, AnchoredQueryRequiresMatchOnSpecifiedSide) {
   EXPECT_TRUE(matches(q, r, match_mode::contains));
 }
 
-TEST(Matches, AnchoredQueryFailsWhenSideIsSwapped) {
+TEST(Matches, AnchoredQueryMatchesSwappedSideWhenReactionIsReversible) {
+  // A reversible reaction (parsed_reaction::reversible defaults to true) runs
+  // both ways, so a query anchored the "wrong" way around still matches via
+  // the swapped orientation.
   query q = parse_query("CO2=>CH4");
   parsed_reaction r;
+  r.reactants = side({sp("CH4", 1.0), sp("O2", 1.0)});
+  r.products = side({sp("CO2", 1.0), sp("H2O", 1.0)});
+  EXPECT_TRUE(matches(q, r, match_mode::contains));
+}
+
+TEST(Matches, AnchoredQueryFailsWhenSideIsSwappedAndReactionIsIrreversible) {
+  query q = parse_query("CO2=>CH4");
+  parsed_reaction r;
+  r.reversible = false;
   r.reactants = side({sp("CH4", 1.0), sp("O2", 1.0)});
   r.products = side({sp("CO2", 1.0), sp("H2O", 1.0)});
   EXPECT_FALSE(matches(q, r, match_mode::contains));
@@ -216,6 +229,33 @@ TEST(Matches, GlobQueryMatchesViaWildcard) {
   r.reactants = side({sp("CH3OH", 1.0)});
   r.products = side({sp("CH4", 1.0)});
   EXPECT_TRUE(matches(q, r, match_mode::contains));
+}
+
+// "CH4+H<=>CH3+H2" is reversible, so it is the same reaction spelled either
+// direction: every query below must match regardless of which side it
+// anchors CH4 vs. CH3/H2 to. Mirrors the reproduction in issue #7.
+TEST(Matches, ReversibleReactionMatchesBothOrientations) {
+  std::optional<parsed_reaction> r = parse_reaction_line("CH4+H<=>CH3+H2");
+  ASSERT_TRUE(r.has_value());
+  EXPECT_TRUE(matches(parse_query("CH4=CH3"), *r, match_mode::contains));
+  EXPECT_TRUE(matches(parse_query("CH3=CH4"), *r, match_mode::contains));
+  EXPECT_TRUE(matches(parse_query("=CH3"), *r, match_mode::contains));
+  EXPECT_TRUE(matches(parse_query("CH3="), *r, match_mode::contains));
+  EXPECT_TRUE(matches(parse_query("=CH4"), *r, match_mode::contains));
+  EXPECT_TRUE(matches(parse_query("CH4="), *r, match_mode::contains));
+  EXPECT_TRUE(matches(parse_query("CH4+H=>CH3+H2"), *r, match_mode::contains));
+  EXPECT_TRUE(matches(parse_query("CH3+H2=>CH4+H"), *r, match_mode::contains));
+}
+
+// The irreversible spelling ("=>") of the same species is a physically
+// distinct reaction from its reverse and must not cross-match.
+TEST(Matches, IrreversibleReactionOnlyMatchesAsWritten) {
+  std::optional<parsed_reaction> r = parse_reaction_line("CH4+H=>CH3+H2");
+  ASSERT_TRUE(r.has_value());
+  EXPECT_TRUE(matches(parse_query("CH4=CH3"), *r, match_mode::contains));
+  EXPECT_FALSE(matches(parse_query("CH3=CH4"), *r, match_mode::contains));
+  EXPECT_TRUE(matches(parse_query("CH4+H=>CH3+H2"), *r, match_mode::contains));
+  EXPECT_FALSE(matches(parse_query("CH3+H2=>CH4+H"), *r, match_mode::contains));
 }
 
 TEST(ThirdBodyMatches, ContainsModeIgnoresThirdBodyWhenUnconstrained) {

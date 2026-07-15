@@ -161,6 +161,30 @@ $ ckgrep "O+CH4=OH" examples/TOT_HT_LT_SOOT_NOX.CKI
 337: O+CH4=OH+CH3               1.0200e+09    1.500      8600.00
 ```
 
+### Reversible reactions match either direction
+
+A `=` or `<=>` line runs both ways chemically, so which side got typed first in the file is just an authoring choice, not a physical distinction. Anchored and directional queries account for this: if a query doesn't match a reversible line as written, it is also tried with reactants and products swapped.
+
+```
+$ ckgrep "OH+CH4=H2O+CH3" examples/TOT_HT_LT_SOOT_NOX.CKI
+339: OH+CH4=H2O+CH3                                          5.8300e+04    2.600      2190.00
+
+$ ckgrep "H2O+CH3=OH+CH4" examples/TOT_HT_LT_SOOT_NOX.CKI
+339: OH+CH4=H2O+CH3                                          5.8300e+04    2.600      2190.00
+```
+
+Both queries hit the same line. This applies to directional (`=>`) queries too — `"H2O+CH3=>OH+CH4"` still finds a reaction written the other way around, as long as the mechanism line itself is reversible.
+
+A line written with `=>` is a genuinely different reaction from its reverse, so it never matches a reversed query:
+
+```
+$ ckgrep "O2+CH2(S)=>H+OH+CO" examples/TOT_HT_LT_SOOT_NOX.CKI
+359: O2+CH2(S)=>H+OH+CO                                      2.8000e+13    0.000         0.00
+
+$ ckgrep "H+OH+CO=>O2+CH2(S)" examples/TOT_HT_LT_SOOT_NOX.CKI
+(no output)
+```
+
 ### Stoichiometric coefficients
 
 Coefficients are understood, not matched as text: `H+H` and `2H` are the same thing, in the query and in the mechanism. A single query finds the products however the file spells them (and `"=2H"` returns exactly the same lines):
