@@ -122,6 +122,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Must run before the artifact downloads below: checkout's default
+      # clean step (git clean -ffdx) wipes untracked files in the workspace,
+      # which would delete the downloaded packages/ directory if it ran after.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/release-notes
+          sparse-checkout-cone-mode: false
+
       - uses: actions/download-artifact@v4
         with:
           path: packages
@@ -140,11 +148,6 @@ jobs:
       - name: Checksums
         working-directory: packages
         run: sha256sum * > SHA256SUMS
-
-      - uses: actions/checkout@v4
-        with:
-          sparse-checkout: .github/release-notes
-          sparse-checkout-cone-mode: false
 
       - name: Create GitHub release
         env:
