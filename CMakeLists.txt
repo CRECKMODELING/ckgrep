@@ -15,7 +15,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(
   ckgrep
-  VERSION 1.1.0
+  VERSION 1.1.1
   LANGUAGES CXX
   DESCRIPTION "A grep-like tool for searching CHEMKIN reaction mechanisms"
 )
